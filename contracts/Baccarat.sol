@@ -19,7 +19,7 @@ contract Baccarat {
 
 
     event Deposit(address player, uint256 amount,uint256 balance);
-    event Withdraw(address player, uint256 amount,uint256 contract_balance ,uint256 wallet_balance);
+    event Withdraw(address player, uint256 amount,uint256 contractBalance ,uint256 walletBalance);
     event Settle(address player, int256 amount,uint256 balance);
 
     modifier onlyOwner() {
