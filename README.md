@@ -1,2 +1,3 @@
 npx hardhat run scripts/deploy.js --network localhost
 ```
+baccarat:0x59F2f1fCfE2474fD5F0b9BA1E73ca90b143Eb8d0

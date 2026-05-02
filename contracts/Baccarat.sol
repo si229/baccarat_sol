@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 
-pragma solidity ^0.8.20;
+pragma solidity >=0.7.0 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -10,13 +10,16 @@ contract Baccarat {
     address private _owner;
     mapping(address => mapping(address => int256)) internal _balance;
     mapping(address => mapping(address => bool)) internal _betState;
-    bytes32 public resultSha256;
     uint64 public roundId;
     mapping(address=>int256) private _prizePool;
 
     event Deposit(address indexed player,address indexed token, uint256 amount,int256 balance);
     event Withdraw(address indexed player,address indexed token,  uint256 amount,int256 balance);
     event Settle(address indexed player, address indexed token,int256 amount,int256 balance);
+
+    event DepositPrize(address indexed player, address indexed token,int256 amount,int256 balance);
+    event WithdrawPrize(address indexed player, address indexed token,int256 amount,int256 balance);
+
 
     modifier onlyOwner() {
         require(msg.sender == _owner, "Caller is not owner");
@@ -59,15 +62,29 @@ contract Baccarat {
     }
 
     function depositPrizePool() external payable {
+        if(msg.value>0){
             _prizePool[address(0)]+=int256(msg.value);
+            emit DepositPrize(msg.sender, address(0), int256(msg.value), _prizePool[address(0)]);
+        }
     }
 
+    function depositPrizePool(address token, uint256 amount) external {
+        (bool success, bytes memory data) = token.call(
+        abi.encodeWithSelector(IERC20.transferFrom.selector
+        , msg.sender, address(this), amount)
+        );
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "transferFrom failed");
+
+        _prizePool[token] += int256(amount);
+        emit DepositPrize(msg.sender, token, int256(amount), _prizePool[token]);
+    }
    
     function withdrawPrizePool(uint256 amount) external onlyOwner {
         require(_prizePool[address(0)] >= int256(amount), "Insufficient balance");
         _prizePool[address(0)] -= int256(amount);
         (bool success, ) = payable(msg.sender).call{value: uint256(int256(amount))}("");
         require(success, "Transfer failed");
+        emit WithdrawPrize(msg.sender, address(0), int256(amount), _prizePool[address(0)]);
     }
 
 
@@ -75,8 +92,14 @@ contract Baccarat {
         require(amount > 0, "invalid amount");
         require(_prizePool[token] >= int256(amount), "Insufficient balance");
         _prizePool[token] -= int256(amount);
-        bool success = IERC20(token).transfer(msg.sender, amount);
-        require(success, "Transfer failed");
+
+        (bool success, bytes memory data) = token.call(
+        abi.encodeWithSelector(IERC20.transfer.selector
+        , msg.sender, amount)
+        );
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "transferFrom failed");
+
+        emit WithdrawPrize(msg.sender, token, int256(amount), _prizePool[token]);
     }
 
     function deposit() external payable {
@@ -86,23 +109,20 @@ contract Baccarat {
         }
     
 
-    function deposit(address token, uint amount) external {
-        require(amount > 0, "zero amount");
-
-        bool success = IERC20(token).transferFrom(
-            msg.sender,
-            address(this),
-            amount
+    function deposit(address token, uint256 amount) external {
+        require(amount > 0, "amount must > 0");
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.transferFrom.selector
+            , msg.sender, address(this), amount)
         );
-        require(success, "transfer failed");
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "transferFrom failed");
         _balance[msg.sender][token] += int256(amount);
-        emit Deposit(msg.sender,token, amount,_balance[msg.sender][token]);
+        emit Deposit(msg.sender, token, amount, _balance[msg.sender][token]);
     }
 
     function withdraw(uint256 amount) external payable {
             require(_balance[msg.sender][address(0)] >= int256(amount), "Insufficient balance");
-            require(0 < amount, "AMOUNT must be greater than 0 ");
-            require(_betState[msg.sender][address(0)] == true, "Please settle first before proceeding");
+            require(_betState[msg.sender][address(0)], "Please settle first before proceeding");
             _balance[msg.sender][address(0)] -= int256(amount);
             (bool success, ) = payable(msg.sender).call{value: amount}("");
             require(success, "Transfer failed");
@@ -111,35 +131,27 @@ contract Baccarat {
 
     function withdraw(address token, uint256 amount) external payable {
             require(_balance[msg.sender][token] >= int256(amount), "Insufficient balance");
-            require(0 < amount, "AMOUNT must be greater than 0 ");
-            require(_betState[msg.sender][token] == true, "Please settle first before proceeding");
+            require(_betState[msg.sender][token], "Please settle first before proceeding");
             _balance[msg.sender][token] -= int256(amount);
-            bool success = IERC20(token).transfer(msg.sender, amount);
-            require(success, "Transfer failed");
+
+           (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, amount));
+
+            require(success && (data.length == 0 || abi.decode(data, (bool))), "transfer failed");
+          
             emit Withdraw(msg.sender,token, amount,_balance[msg.sender][token]);
     }
 
 
-   function settle(address player,uint256 SettleAmount,bool isLoss ) external onlyOwner {
-        if (isLoss){
-            if (_balance[player][address(0)] <= int256(SettleAmount)){
-                delete _balance[player][address(0)];
-            }else{
-                _balance[player][address(0)] -= int256(SettleAmount);
-            }
-            _prizePool[address(0)]+=int256(SettleAmount);
-        }else{
-          _balance[player][address(0)] += int256(SettleAmount);
-          if (_prizePool[address(0)]<=int256(SettleAmount)){
-            _prizePool[address(0)] = 0;
-          }else{
-            _prizePool[address(0)]-=int256(SettleAmount);
-          }
+   function settle(address player,int256 SettleAmount,address token) external onlyOwner {
+       _balance[player][token]+=SettleAmount;
+       _prizePool[token]-=int256(SettleAmount);
 
-        }
-
-        _betState[player][address(0)]   = true;
-       
+       if (_balance[player][token]<=0){
+            delete _balance[player][token];
+            delete  _betState[player][address(0)];
+       }else{
+             _betState[player][address(0)]   = true;
+       }
     }
 
 
