@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 async function main() {
-  const Baccarat = await hre.ethers.getContractFactory("Baccarat");
+  const Baccarat = await hre.ethers.getContractFactory("MockUSDT");
   const baccarat = await Baccarat.deploy();
   await baccarat.waitForDeployment();
   console.log("Baccarat deployed to:", baccarat.target);
