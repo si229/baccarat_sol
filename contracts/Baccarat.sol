@@ -130,15 +130,15 @@ contract Baccarat {
     }
 
     function withdraw(address token, uint256 amount) external payable {
-            require(_balance[msg.sender][token] >= int256(amount), "Insufficient balance");
-            require(_betState[msg.sender][token], "Please settle first before proceeding");
-            _balance[msg.sender][token] -= int256(amount);
+        require(_balance[msg.sender][token] >= int256(amount), "Insufficient balance");
+        require(_betState[msg.sender][token]==false, "Please settle first before proceeding");
+        _balance[msg.sender][token] -= int256(amount);
 
-           (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, amount));
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, amount));
 
-            require(success && (data.length == 0 || abi.decode(data, (bool))), "transfer failed");
-          
-            emit Withdraw(msg.sender,token, amount,_balance[msg.sender][token]);
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "transfer failed");
+        
+        emit Withdraw(msg.sender,token, amount,_balance[msg.sender][token]);
     }
 
 
