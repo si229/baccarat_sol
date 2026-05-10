@@ -122,7 +122,7 @@ contract Baccarat {
 
     function withdraw(uint256 amount) external payable {
         require(_balance[msg.sender][address(0)] >= int256(amount), "Insufficient balance");
-        require(_betState[msg.sender][address(0)], "Please settle first before proceeding");
+        require(_betState[msg.sender][address(0)]==false, "Please settle first before proceeding");
         _balance[msg.sender][address(0)] -= int256(amount);
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         require(success, "Transfer failed");
