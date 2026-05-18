@@ -86,15 +86,6 @@ contract Baccarat {
         _prizePool[token] += int256(amount);
         emit DepositPrize(msg.sender, token, int256(amount), _prizePool[token]);
     }
-   
-    function withdrawPrizePool(uint256 amount) external onlyOwner {
-        require(_prizePool[0] >= int256(amount), "Insufficient balance");
-        _prizePool[0] -= int256(amount);
-        (bool success, ) = payable(msg.sender).call{value: uint256(int256(amount))}("");
-        require(success, "Transfer failed");
-        emit WithdrawPrize(msg.sender, 0, int256(amount), _prizePool[0]);
-    }
-
 
     function withdrawPrizePool(uint8 token, uint256 amount) external onlyOwner validToken(token) {
         require(amount > 0, "invalid amount");
