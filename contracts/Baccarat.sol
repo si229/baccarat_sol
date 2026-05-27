@@ -153,25 +153,34 @@ contract Baccarat {
         emit WithdrawPrize(msg.sender, token, amount, _prizePools[token]);
     }
 
-    function settle(address player, int256 settleAmount, uint8 token) external onlyOwner validToken(token) {
-        require(player != address(0), "Invalid player");
-        require(_hasUnsettledBet[player][token], "No unsettled bet");
+    function deposit(uint8 token, uint256 amount) external payable validToken(token) {
+        require(amount > 0, "amount must > 0");
 
-        int256 newBalance = _balances[player][token] + settleAmount;
-        int256 newPrizePool = _prizePools[token] - settleAmount;
+        if(token==0){
+               _balance[msg.sender][token] += int256(msg.value);
 
-        require(newBalance >= 0, "Balance below zero");
-        require(newPrizePool >= 0, "Prize pool below zero");
-
-        _balances[player][token] = newBalance;
-        _prizePools[token] = newPrizePool;
-        _hasUnsettledBet[player][token] = false;
-
-        if (newBalance == 0) {
-            delete _balances[player][token];
+        }else{
+            (bool success, bytes memory data) = _tokens[token].call(
+                        abi.encodeWithSelector(IERC20.transferFrom.selector
+                        , msg.sender, address(this), amount)
+                    );
+            require(success && (data.length == 0 || abi.decode(data, (bool))), "transferFrom failed");
+             _balance[msg.sender][token] += int256(amount);
         }
+        emit Deposit(msg.sender, token, amount, _balance[msg.sender][token]);
+    }
 
-        emit Settle(player, token, settleAmount, newBalance);
+
+    function withdraw(uint8 token, uint256 amount) external payable validToken(token) {
+        require(_balance[msg.sender][token] >= int256(amount), "Insufficient balance");
+        require(_betState[msg.sender][token]==false, "Please settle first before proceeding");
+        _balance[msg.sender][token] -= int256(amount);
+
+        (bool success, bytes memory data) = _tokens[token].call(abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, amount));
+
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "transfer failed");
+        
+        emit Withdraw(msg.sender,token, amount,_balance[msg.sender][token]);
     }
 
     function _depositNativePrizePool(address player, uint256 amount) private {
