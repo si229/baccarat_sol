@@ -6,7 +6,7 @@ async function main() {
   await usdt.waitForDeployment();
   console.log("USDT deployed to:", usdt.target);
 
-  const PEPE = await hre.ethers.getContractFactory("PEPE");
+  const PEPE = await hre.ethers.getContractFactory("MockPEPE");
   const pepe = await PEPE.deploy();
   await pepe.waitForDeployment();
   console.log("PEPE deployed to:", pepe.target);

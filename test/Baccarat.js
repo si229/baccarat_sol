@@ -1,0 +1,108 @@
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+
+const TokenKind = {
+  Native: 0,
+  Pepe: 1,
+  Usdt: 2,
+};
+
+describe("Baccarat", function () {
+  async function deployFixture() {
+    const [owner, player] = await ethers.getSigners();
+
+    const MockUSDT = await ethers.getContractFactory("MockUSDT");
+    const usdt = await MockUSDT.deploy();
+
+    const MockPEPE = await ethers.getContractFactory("MockPEPE");
+    const pepe = await MockPEPE.deploy();
+
+    const Baccarat = await ethers.getContractFactory("Baccarat");
+    const baccarat = await Baccarat.deploy(pepe.target, usdt.target);
+
+    await usdt.mint(player.address, ethers.parseUnits("1000", 6));
+    await pepe.mint(player.address, ethers.parseEther("1000"));
+
+    return { baccarat, pepe, usdt, owner, player };
+  }
+
+  it("configures supported token addresses", async function () {
+    const { baccarat, pepe, usdt } = await deployFixture();
+
+    expect(await baccarat.tokenAddress(TokenKind.Native)).to.equal(ethers.ZeroAddress);
+    expect(await baccarat.tokenAddress(TokenKind.Pepe)).to.equal(pepe.target);
+    expect(await baccarat.tokenAddress(TokenKind.Usdt)).to.equal(usdt.target);
+  });
+
+  it("deposits and withdraws native player balance", async function () {
+    const { baccarat, player } = await deployFixture();
+    const amount = ethers.parseEther("1");
+
+    await expect(
+      baccarat.connect(player).depositPlayerBalance(TokenKind.Native, amount, { value: amount }),
+    )
+      .to.emit(baccarat, "PlayerDeposit")
+      .withArgs(player.address, TokenKind.Native, amount, amount);
+
+    expect(await baccarat.playerBalance(player.address, TokenKind.Native)).to.equal(amount);
+
+    await expect(() =>
+      baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
+    ).to.changeEtherBalances([player, baccarat], [amount, -amount]);
+  });
+
+  it("deposits ERC20 player balance through allowance", async function () {
+    const { baccarat, usdt, player } = await deployFixture();
+    const amount = ethers.parseUnits("50", 6);
+
+    await usdt.connect(player).approve(baccarat.target, amount);
+    await baccarat.connect(player).depositPlayerBalance(TokenKind.Usdt, amount);
+
+    expect(await baccarat.playerBalance(player.address, TokenKind.Usdt)).to.equal(amount);
+    expect(await usdt.balanceOf(baccarat.target)).to.equal(amount);
+  });
+
+  it("blocks withdrawals while a bet is open", async function () {
+    const { baccarat, player } = await deployFixture();
+    const amount = ethers.parseEther("1");
+
+    await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, amount, { value: amount });
+    await baccarat.connect(player).placeBet(TokenKind.Native);
+
+    await expect(
+      baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
+    ).to.be.revertedWith("Settle bet first");
+  });
+
+  it("settles wins from the prize pool", async function () {
+    const { baccarat, owner, player } = await deployFixture();
+    const depositAmount = ethers.parseEther("1");
+    const prizeAmount = ethers.parseEther("5");
+    const payout = ethers.parseEther("2");
+
+    await baccarat.connect(owner).fundPrizePool(TokenKind.Native, prizeAmount, { value: prizeAmount });
+    await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, depositAmount, { value: depositAmount });
+    await baccarat.connect(player).placeBet(TokenKind.Native);
+
+    await expect(baccarat.connect(owner).settleBet(player.address, TokenKind.Native, payout))
+      .to.emit(baccarat, "BetSettled")
+      .withArgs(player.address, TokenKind.Native, payout, depositAmount + payout);
+
+    expect(await baccarat.playerBalance(player.address, TokenKind.Native)).to.equal(depositAmount + payout);
+    expect(await baccarat.prizePoolBalance(TokenKind.Native)).to.equal(prizeAmount - payout);
+    expect(await baccarat.hasOpenBet(player.address, TokenKind.Native)).to.equal(false);
+  });
+
+  it("settles losses into the prize pool", async function () {
+    const { baccarat, owner, player } = await deployFixture();
+    const depositAmount = ethers.parseEther("3");
+    const loss = ethers.parseEther("1");
+
+    await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, depositAmount, { value: depositAmount });
+    await baccarat.connect(player).placeBet(TokenKind.Native);
+    await baccarat.connect(owner).settleBet(player.address, TokenKind.Native, -loss);
+
+    expect(await baccarat.playerBalance(player.address, TokenKind.Native)).to.equal(depositAmount - loss);
+    expect(await baccarat.prizePoolBalance(TokenKind.Native)).to.equal(loss);
+  });
+});
