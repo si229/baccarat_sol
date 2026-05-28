@@ -114,23 +114,22 @@ contract Baccarat is Ownable, IBaccarat {
         _placeBet(token);
     }
 
-    function settleBet(address player, TokenKind token, int256 payout) external onlyOwner {
-        uint8 tokenId = _tokenIndex(token);
-        if (payout > 0) {
-            uint256 winAmount = uint256(payout);
-            if (_prizePools[tokenId] < winAmount) revert("Insufficient prize pool");
+    function settlePlayerBalance(address player, TokenKind token, int256 delta) external onlyOwner {
+        _settlePlayerBalance(player, token, delta);
+    }
 
-            _prizePools[tokenId] -= winAmount;
-            _balances[player][tokenId] += winAmount;
-        } else if (payout < 0) {
-            uint256 lossAmount = uint256(-payout);
-            if (_balances[player][tokenId] < lossAmount) revert("Insufficient player balance");
+    function settlePlayerBalances(
+        address player,
+        TokenKind[] calldata tokens,
+        int256[] calldata deltas
+    ) external onlyOwner {
+        if (tokens.length != deltas.length) revert("Settlement length mismatch");
 
-            _balances[player][tokenId] -= lossAmount;
-            _prizePools[tokenId] += lossAmount;
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (deltas[i] != 0) {
+                _settlePlayerBalance(player, tokens[i], deltas[i]);
+            }
         }
-
-        emit BetSettled(player, token, payout, _balances[player][tokenId]);
     }
 
     function isOwner() external view returns (bool) {
@@ -171,6 +170,25 @@ contract Baccarat is Ownable, IBaccarat {
 
     function bet(uint8 token) external {
         _placeBet(_legacyTokenKind(token));
+    }
+
+    function _settlePlayerBalance(address player, TokenKind token, int256 delta) private {
+        uint8 tokenId = _tokenIndex(token);
+        if (delta > 0) {
+            uint256 winAmount = uint256(delta);
+            if (_prizePools[tokenId] < winAmount) revert("Insufficient prize pool");
+
+            _prizePools[tokenId] -= winAmount;
+            _balances[player][tokenId] += winAmount;
+        } else if (delta < 0) {
+            uint256 lossAmount = uint256(-delta);
+            if (_balances[player][tokenId] < lossAmount) revert("Insufficient player balance");
+
+            _balances[player][tokenId] -= lossAmount;
+            _prizePools[tokenId] += lossAmount;
+        }
+
+        emit PlayerBalanceSettled(player, token, delta, _balances[player][tokenId]);
     }
 
     function _increasePrizePool(TokenKind token, uint8 tokenId, uint256 amount, address funder) private {

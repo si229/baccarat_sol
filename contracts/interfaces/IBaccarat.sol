@@ -30,7 +30,7 @@ interface IBaccarat {
         uint256 maxWithdraw
     );
     event BetPlaced(address indexed player, TokenKind indexed token, uint64 indexed roundId, uint256 balance);
-    event BetSettled(address indexed player, TokenKind indexed token, int256 payout, uint256 balance);
+    event PlayerBalanceSettled(address indexed player, TokenKind indexed token, int256 delta, uint256 balance);
     event PrizePoolFunded(address indexed funder, TokenKind indexed token, uint256 amount, uint256 balance);
     event PrizePoolWithdrawal(address indexed operator, TokenKind indexed token, uint256 amount, uint256 balance);
 
@@ -54,7 +54,8 @@ interface IBaccarat {
     function fundPrizePool(TokenKind token, uint256 amount) external payable;
     function withdrawPrizePool(TokenKind token, uint256 amount) external;
     function placeBet(TokenKind token) external;
-    function settleBet(address player, TokenKind token, int256 payout) external;
+    function settlePlayerBalance(address player, TokenKind token, int256 delta) external;
+    function settlePlayerBalances(address player, TokenKind[] calldata tokens, int256[] calldata deltas) external;
 
     function isOwner() external view returns (bool);
     function getToken(uint8 token) external view returns (address);
