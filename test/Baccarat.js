@@ -74,27 +74,67 @@ describe("Baccarat", function () {
     ).to.be.revertedWith("Settle bet first");
   });
 
-  it("blocks withdrawals while backend unsettled balance exists", async function () {
+  it("blocks withdrawals while backend withdrawal lock exists", async function () {
     const { baccarat, owner, player } = await deployFixture();
     const amount = ethers.parseEther("1");
 
     await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, amount, { value: amount });
 
-    await expect(baccarat.connect(owner).setPlayerUnsettledBalance(player.address, TokenKind.Native, amount))
-      .to.emit(baccarat, "PlayerUnsettledBalanceUpdated")
-      .withArgs(player.address, TokenKind.Native, amount);
+    await expect(baccarat.connect(owner).setPlayerWithdrawalLocked(player.address, TokenKind.Native, true))
+      .to.emit(baccarat, "PlayerWithdrawalLockUpdated")
+      .withArgs(player.address, TokenKind.Native, true);
 
-    expect(await baccarat.playerUnsettledBalance(player.address, TokenKind.Native)).to.equal(amount);
     expect(await baccarat.hasOpenBet(player.address, TokenKind.Native)).to.equal(true);
+    expect(await baccarat.isWithdrawalLocked(player.address, TokenKind.Native)).to.equal(true);
 
     await expect(
       baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
     ).to.be.revertedWith("Settle bet first");
 
-    await baccarat.connect(owner).setPlayerUnsettledBalance(player.address, TokenKind.Native, 0);
+    await baccarat.connect(owner).setPlayerWithdrawalLocked(player.address, TokenKind.Native, false);
     await expect(() =>
       baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
     ).to.changeEtherBalances([player, baccarat], [amount, -amount]);
+  });
+
+  it("enforces deposit and withdrawal amount limits", async function () {
+    const { baccarat, owner, player } = await deployFixture();
+    const minDeposit = ethers.parseEther("1");
+    const maxDeposit = ethers.parseEther("5");
+    const minWithdraw = ethers.parseEther("0.5");
+    const maxWithdraw = ethers.parseEther("2");
+
+    await expect(
+      baccarat
+        .connect(owner)
+        .setAmountLimits(TokenKind.Native, minDeposit, maxDeposit, minWithdraw, maxWithdraw),
+    )
+      .to.emit(baccarat, "TokenAmountLimitsUpdated")
+      .withArgs(TokenKind.Native, minDeposit, maxDeposit, minWithdraw, maxWithdraw);
+
+    await expect(
+      baccarat.connect(player).depositPlayerBalance(TokenKind.Native, ethers.parseEther("0.5"), {
+        value: ethers.parseEther("0.5"),
+      }),
+    ).to.be.revertedWith("Amount below minimum");
+
+    await expect(
+      baccarat.connect(player).depositPlayerBalance(TokenKind.Native, ethers.parseEther("6"), {
+        value: ethers.parseEther("6"),
+      }),
+    ).to.be.revertedWith("Amount above maximum");
+
+    await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, ethers.parseEther("3"), {
+      value: ethers.parseEther("3"),
+    });
+
+    await expect(
+      baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, ethers.parseEther("0.1")),
+    ).to.be.revertedWith("Amount below minimum");
+
+    await expect(
+      baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, ethers.parseEther("3")),
+    ).to.be.revertedWith("Amount above maximum");
   });
 
   it("settles wins from the prize pool", async function () {
@@ -138,7 +178,7 @@ describe("Baccarat", function () {
     expect(await baccarat.connect(player).getBalance(TokenKind.Native)).to.equal(amount);
 
     await baccarat.connect(player).bet(TokenKind.Native);
-    expect(await baccarat.hasUnsettledBet(player.address, TokenKind.Native)).to.equal(true);
+    expect(await baccarat.isWithdrawalLocked(player.address, TokenKind.Native)).to.equal(true);
   });
 
   it("rejects unknown selectors", async function () {
