@@ -13,10 +13,6 @@ interface IBaccarat {
         string symbol;
     }
 
-    struct PlayerPosition {
-        uint256 balance;
-    }
-
     struct AmountLimits {
         uint256 minDeposit;
         uint256 maxDeposit;
@@ -41,7 +37,6 @@ interface IBaccarat {
     function tokenAddress(TokenKind token) external view returns (address);
     function prizePoolBalance(TokenKind token) external view returns (uint256);
     function playerBalance(address player, TokenKind token) external view returns (uint256);
-    function playerPosition(address player, TokenKind token) external view returns (PlayerPosition memory);
     function isWithdrawalLocked(address player) external view returns (bool);
     function amountLimits(TokenKind token) external view returns (AmountLimits memory);
 
