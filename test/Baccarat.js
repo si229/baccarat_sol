@@ -74,6 +74,29 @@ describe("Baccarat", function () {
     ).to.be.revertedWith("Settle bet first");
   });
 
+  it("blocks withdrawals while backend unsettled balance exists", async function () {
+    const { baccarat, owner, player } = await deployFixture();
+    const amount = ethers.parseEther("1");
+
+    await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, amount, { value: amount });
+
+    await expect(baccarat.connect(owner).setPlayerUnsettledBalance(player.address, TokenKind.Native, amount))
+      .to.emit(baccarat, "PlayerUnsettledBalanceUpdated")
+      .withArgs(player.address, TokenKind.Native, amount);
+
+    expect(await baccarat.playerUnsettledBalance(player.address, TokenKind.Native)).to.equal(amount);
+    expect(await baccarat.hasOpenBet(player.address, TokenKind.Native)).to.equal(true);
+
+    await expect(
+      baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
+    ).to.be.revertedWith("Settle bet first");
+
+    await baccarat.connect(owner).setPlayerUnsettledBalance(player.address, TokenKind.Native, 0);
+    await expect(() =>
+      baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
+    ).to.changeEtherBalances([player, baccarat], [amount, -amount]);
+  });
+
   it("settles wins from the prize pool", async function () {
     const { baccarat, owner, player } = await deployFixture();
     const depositAmount = ethers.parseEther("1");

@@ -16,11 +16,13 @@ interface IBaccarat {
     struct PlayerPosition {
         uint256 balance;
         bool hasOpenBet;
+        uint256 unsettledBalance;
     }
 
     event RoundChanged(uint64 indexed roundId);
     event PlayerDeposit(address indexed player, TokenKind indexed token, uint256 amount, uint256 balance);
     event PlayerWithdrawal(address indexed player, TokenKind indexed token, uint256 amount, uint256 balance);
+    event PlayerUnsettledBalanceUpdated(address indexed player, TokenKind indexed token, uint256 unsettledBalance);
     event BetPlaced(address indexed player, TokenKind indexed token, uint64 indexed roundId, uint256 balance);
     event BetSettled(address indexed player, TokenKind indexed token, int256 payout, uint256 balance);
     event PrizePoolFunded(address indexed funder, TokenKind indexed token, uint256 amount, uint256 balance);
@@ -31,8 +33,10 @@ interface IBaccarat {
     function playerBalance(address player, TokenKind token) external view returns (uint256);
     function playerPosition(address player, TokenKind token) external view returns (PlayerPosition memory);
     function hasOpenBet(address player, TokenKind token) external view returns (bool);
+    function playerUnsettledBalance(address player, TokenKind token) external view returns (uint256);
 
     function setRoundId(uint64 newRoundId) external;
+    function setPlayerUnsettledBalance(address player, TokenKind token, uint256 unsettledBalance) external;
     function depositPlayerBalance(TokenKind token, uint256 amount) external payable;
     function withdrawPlayerBalance(TokenKind token, uint256 amount) external;
     function fundPrizePool(TokenKind token, uint256 amount) external payable;
@@ -45,6 +49,8 @@ interface IBaccarat {
     function getPrizePool(uint8 token) external view returns (uint256);
     function getBalance(uint8 token) external view returns (uint256);
     function hasUnsettledBet(address player, uint8 token) external view returns (bool);
+    function getUnsettledBalance(address player, uint8 token) external view returns (uint256);
+    function setUnsettledBalance(address player, uint8 token, uint256 unsettledBalance) external;
     function deposit(uint8 token, uint256 amount) external payable;
     function withdraw(uint8 token, uint256 amount) external;
     function depositPrizePool(uint8 token, uint256 amount) external payable;
