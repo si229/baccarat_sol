@@ -63,15 +63,15 @@ describe("Baccarat", function () {
   });
 
   it("blocks withdrawals while a bet is open", async function () {
-    const { baccarat, player } = await deployFixture();
+    const { baccarat, owner, player } = await deployFixture();
     const amount = ethers.parseEther("1");
 
     await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, amount, { value: amount });
-    await baccarat.connect(player).placeBet(TokenKind.Native);
+    await baccarat.connect(owner).setPlayerWithdrawalLocked(player.address);
 
     await expect(
       baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
-    ).to.be.revertedWith("Settle bet first");
+    ).to.be.revertedWith("Withdraw locked");
   });
 
   it("blocks withdrawals while backend withdrawal lock exists", async function () {
@@ -80,17 +80,19 @@ describe("Baccarat", function () {
 
     await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, amount, { value: amount });
 
-    await expect(baccarat.connect(owner).setPlayerWithdrawalLocked(player.address, TokenKind.Native))
+    await expect(baccarat.connect(owner).setPlayerWithdrawalLocked(player.address))
       .to.emit(baccarat, "PlayerWithdrawalLockUpdated")
-      .withArgs(player.address, TokenKind.Native, true);
+      .withArgs(player.address, true);
 
-    expect(await baccarat.isWithdrawalLocked(player.address, TokenKind.Native)).to.equal(true);
+    expect(await baccarat.isWithdrawalLocked(player.address)).to.equal(true);
 
     await expect(
       baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
-    ).to.be.revertedWith("Settle bet first");
+    ).to.be.revertedWith("Withdraw locked");
 
-    await baccarat.connect(owner).settleBet(player.address, TokenKind.Native, 0);
+    await expect(baccarat.connect(owner).setPlayerWithdrawalUnlocked(player.address))
+      .to.emit(baccarat, "PlayerWithdrawalLockUpdated")
+      .withArgs(player.address, false);
     await expect(() =>
       baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
     ).to.changeEtherBalances([player, baccarat], [amount, -amount]);
@@ -147,7 +149,6 @@ describe("Baccarat", function () {
 
     expect(await baccarat.playerBalance(player.address, TokenKind.Native)).to.equal(depositAmount + payout);
     expect(await baccarat.prizePoolBalance(TokenKind.Native)).to.equal(prizeAmount - payout);
-    expect(await baccarat.isWithdrawalLocked(player.address, TokenKind.Native)).to.equal(false);
   });
 
   it("settles losses into the prize pool", async function () {
@@ -172,7 +173,7 @@ describe("Baccarat", function () {
     expect(await baccarat.connect(player).getBalance(TokenKind.Native)).to.equal(amount);
 
     await baccarat.connect(player).bet(TokenKind.Native);
-    expect(await baccarat.isWithdrawalLocked(player.address, TokenKind.Native)).to.equal(true);
+    expect(await baccarat.playerBalance(player.address, TokenKind.Native)).to.equal(amount);
   });
 
   it("rejects unknown selectors", async function () {

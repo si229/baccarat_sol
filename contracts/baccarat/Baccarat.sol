@@ -17,6 +17,7 @@ contract Baccarat is Ownable, IBaccarat {
     AmountLimits[TOKEN_COUNT] private _limits;
     uint256[TOKEN_COUNT] private _prizePools;
     mapping(address => mapping(uint8 => PlayerPosition)) private _positions;
+    mapping(address => bool) private _withdrawalLocks;
 
     constructor(address pepeToken, address usdtToken) {
         if (pepeToken == address(0)) revert("Invalid PEPE token");
@@ -56,8 +57,8 @@ contract Baccarat is Ownable, IBaccarat {
         return _positions[player][_tokenIndex(token)];
     }
 
-    function isWithdrawalLocked(address player, TokenKind token) external view returns (bool) {
-        return _positions[player][_tokenIndex(token)].withdrawalLocked;
+    function isWithdrawalLocked(address player) external view returns (bool) {
+        return _withdrawalLocks[player];
     }
 
     function amountLimits(TokenKind token) external view returns (AmountLimits memory) {
@@ -68,8 +69,12 @@ contract Baccarat is Ownable, IBaccarat {
         _depositPlayerBalance(token, amount);
     }
 
-    function setPlayerWithdrawalLocked(address player, TokenKind token) external onlyOwner {
-        _lockPlayerWithdrawal(player, token);
+    function setPlayerWithdrawalLocked(address player) external onlyOwner {
+        _setPlayerWithdrawalLock(player, true);
+    }
+
+    function setPlayerWithdrawalUnlocked(address player) external onlyOwner {
+        _setPlayerWithdrawalLock(player, false);
     }
 
     function setAmountLimits(
@@ -117,10 +122,6 @@ contract Baccarat is Ownable, IBaccarat {
         uint8 tokenId = _tokenIndex(token);
         PlayerPosition storage position = _positions[player][tokenId];
 
-        if (!position.withdrawalLocked) revert("No open bet");
-        position.withdrawalLocked = false;
-        emit PlayerWithdrawalLockUpdated(player, token, false);
-
         if (payout > 0) {
             uint256 winAmount = uint256(payout);
             if (_prizePools[tokenId] < winAmount) revert("Insufficient prize pool");
@@ -162,8 +163,12 @@ contract Baccarat is Ownable, IBaccarat {
         _withdrawPlayerBalance(_legacyTokenKind(token), amount);
     }
 
-    function setWithdrawalLocked(address player, uint8 token) external onlyOwner {
-        _lockPlayerWithdrawal(player, _legacyTokenKind(token));
+    function setWithdrawalLocked(address player) external onlyOwner {
+        _setPlayerWithdrawalLock(player, true);
+    }
+
+    function setWithdrawalUnlocked(address player) external onlyOwner {
+        _setPlayerWithdrawalLock(player, false);
     }
 
     function depositPrizePool(uint8 token, uint256 amount) external payable {
@@ -223,7 +228,7 @@ contract Baccarat is Ownable, IBaccarat {
         if (amount == 0) revert("Invalid amount");
 
         PlayerPosition storage position = _positions[msg.sender][tokenId];
-        if (position.withdrawalLocked) revert("Settle bet first");
+        if (_withdrawalLocks[msg.sender]) revert("Withdraw locked");
         _validateMaxAmount(amount, _limits[tokenId].maxWithdraw);
         if (position.balance < amount) revert("Insufficient balance");
 
@@ -244,22 +249,15 @@ contract Baccarat is Ownable, IBaccarat {
         PlayerPosition storage position = _positions[msg.sender][tokenId];
 
         if (position.balance == 0) revert("Insufficient balance");
-        if (position.withdrawalLocked) revert("Bet already open");
-
-        position.withdrawalLocked = true;
-        emit PlayerWithdrawalLockUpdated(msg.sender, token, true);
         emit BetPlaced(msg.sender, token, roundId, position.balance);
     }
 
-    function _lockPlayerWithdrawal(address player, TokenKind token) private {
+    function _setPlayerWithdrawalLock(address player, bool locked) private {
         if (player == address(0)) revert("Invalid player");
 
-        uint8 tokenId = _tokenIndex(token);
-        PlayerPosition storage position = _positions[player][tokenId];
+        _withdrawalLocks[player] = locked;
 
-        position.withdrawalLocked = true;
-
-        emit PlayerWithdrawalLockUpdated(player, token, true);
+        emit PlayerWithdrawalLockUpdated(player, locked);
     }
 
     function _validateAmount(uint256 amount, uint256 minAmount, uint256 maxAmount) private pure {
