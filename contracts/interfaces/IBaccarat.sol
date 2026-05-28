@@ -39,6 +39,7 @@ interface IBaccarat {
     function playerBalance(address player, TokenKind token) external view returns (uint256);
     function isWithdrawalLocked(address player) external view returns (bool);
     function amountLimits(TokenKind token) external view returns (AmountLimits memory);
+    function contractVersion() external pure returns (string memory);
 
     function setRoundId(uint64 newRoundId) external;
     function setPlayerWithdrawalLocked(address player) external;

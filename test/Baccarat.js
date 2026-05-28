@@ -29,6 +29,7 @@ describe("Baccarat", function () {
   it("configures supported token addresses", async function () {
     const { baccarat, pepe, usdt } = await deployFixture();
 
+    expect(await baccarat.contractVersion()).to.equal("baccarat-2026-05-28.1");
     expect(await baccarat.tokenAddress(TokenKind.Native)).to.equal(ethers.ZeroAddress);
     expect(await baccarat.tokenAddress(TokenKind.Pepe)).to.equal(pepe.target);
     expect(await baccarat.tokenAddress(TokenKind.Usdt)).to.equal(usdt.target);

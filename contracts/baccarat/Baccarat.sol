@@ -10,6 +10,7 @@ contract Baccarat is Ownable, IBaccarat {
     using SafeERC20 for IERC20;
 
     uint8 private constant TOKEN_COUNT = 3;
+    string private constant CONTRACT_VERSION = "baccarat-2026-05-28.1";
 
     uint64 public roundId;
 
@@ -59,6 +60,10 @@ contract Baccarat is Ownable, IBaccarat {
 
     function amountLimits(TokenKind token) external view returns (AmountLimits memory) {
         return _limits[_tokenIndex(token)];
+    }
+
+    function contractVersion() external pure returns (string memory) {
+        return CONTRACT_VERSION;
     }
 
     function depositPlayerBalance(TokenKind token, uint256 amount) external payable {
