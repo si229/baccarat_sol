@@ -76,21 +76,18 @@ contract Baccarat is Ownable, IBaccarat {
         TokenKind token,
         uint256 minDeposit,
         uint256 maxDeposit,
-        uint256 minWithdraw,
         uint256 maxWithdraw
     ) external onlyOwner {
         if (maxDeposit != 0 && minDeposit > maxDeposit) revert("Invalid deposit limits");
-        if (maxWithdraw != 0 && minWithdraw > maxWithdraw) revert("Invalid withdraw limits");
 
         uint8 tokenId = _tokenIndex(token);
         _limits[tokenId] = AmountLimits({
             minDeposit: minDeposit,
             maxDeposit: maxDeposit,
-            minWithdraw: minWithdraw,
             maxWithdraw: maxWithdraw
         });
 
-        emit TokenAmountLimitsUpdated(token, minDeposit, maxDeposit, minWithdraw, maxWithdraw);
+        emit TokenAmountLimitsUpdated(token, minDeposit, maxDeposit, maxWithdraw);
     }
 
     function withdrawPlayerBalance(TokenKind token, uint256 amount) external {
@@ -227,7 +224,7 @@ contract Baccarat is Ownable, IBaccarat {
 
         PlayerPosition storage position = _positions[msg.sender][tokenId];
         if (position.withdrawalLocked) revert("Settle bet first");
-        _validateAmount(amount, _limits[tokenId].minWithdraw, _limits[tokenId].maxWithdraw);
+        _validateMaxAmount(amount, _limits[tokenId].maxWithdraw);
         if (position.balance < amount) revert("Insufficient balance");
 
         position.balance -= amount;
@@ -268,6 +265,10 @@ contract Baccarat is Ownable, IBaccarat {
     function _validateAmount(uint256 amount, uint256 minAmount, uint256 maxAmount) private pure {
         if (amount == 0) revert("Invalid amount");
         if (minAmount != 0 && amount < minAmount) revert("Amount below minimum");
+        if (maxAmount != 0 && amount > maxAmount) revert("Amount above maximum");
+    }
+
+    function _validateMaxAmount(uint256 amount, uint256 maxAmount) private pure {
         if (maxAmount != 0 && amount > maxAmount) revert("Amount above maximum");
     }
 

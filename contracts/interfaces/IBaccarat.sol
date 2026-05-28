@@ -21,7 +21,6 @@ interface IBaccarat {
     struct AmountLimits {
         uint256 minDeposit;
         uint256 maxDeposit;
-        uint256 minWithdraw;
         uint256 maxWithdraw;
     }
 
@@ -33,7 +32,6 @@ interface IBaccarat {
         TokenKind indexed token,
         uint256 minDeposit,
         uint256 maxDeposit,
-        uint256 minWithdraw,
         uint256 maxWithdraw
     );
     event BetPlaced(address indexed player, TokenKind indexed token, uint64 indexed roundId, uint256 balance);
@@ -54,7 +52,6 @@ interface IBaccarat {
         TokenKind token,
         uint256 minDeposit,
         uint256 maxDeposit,
-        uint256 minWithdraw,
         uint256 maxWithdraw
     ) external;
     function depositPlayerBalance(TokenKind token, uint256 amount) external payable;
