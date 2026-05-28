@@ -1,4 +1,6 @@
 const hre = require("hardhat");
+const fs = require("fs");
+const path = require("path");
 
 async function main() {
   const [deployer, ...testAccounts] = await hre.ethers.getSigners();
@@ -20,6 +22,13 @@ async function main() {
 
   await distributeHalfToTestAccounts(usdt, "USDT", testAccounts);
   await distributeHalfToTestAccounts(pepe, "PEPE", testAccounts);
+
+  updateGameServerConfig({
+    baccarat: baccarat.target,
+    pepe: pepe.target,
+    usdt: usdt.target
+  });
+  updateWeb3ApiEnv({ baccarat: baccarat.target });
 }
 
 async function distributeHalfToTestAccounts(token, symbol, accounts) {
@@ -39,6 +48,51 @@ async function distributeHalfToTestAccounts(token, symbol, accounts) {
   }
 
   console.log(`${symbol} distributed: ${hre.ethers.formatUnits(totalDistribution, decimals)} total, ${hre.ethers.formatUnits(share, decimals)} each to ${accounts.length} test accounts`);
+}
+
+function updateGameServerConfig(addresses) {
+  const configPath = path.resolve(__dirname, "../../gameServer/config/sys.config");
+  if (!fs.existsSync(configPath)) {
+    console.log("gameServer sys.config not found, skipped:", configPath);
+    return;
+  }
+
+  let content = fs.readFileSync(configPath, "utf8");
+  content = content.replace(
+    /\{contract_address,\s*<<"0x[a-fA-F0-9]{40}">>\}/,
+    `{contract_address, <<"${addresses.baccarat}">>}`
+  );
+
+  const tokenConfig = `{token_addresses, #{\n            <<"PEPE">> => <<"${addresses.pepe}">>,\n            <<"USDT">> => <<"${addresses.usdt}">>\n        }}`;
+  if (/\{token_addresses,\s*#\{[\s\S]*?\}\s*\}/.test(content)) {
+    content = content.replace(/\{token_addresses,\s*#\{[\s\S]*?\}\s*\}/, tokenConfig);
+  } else {
+    content = content.replace(
+      /(\{contract_address,\s*<<"0x[a-fA-F0-9]{40}">>\},)/,
+      `$1\n        ${tokenConfig},`
+    );
+  }
+
+  fs.writeFileSync(configPath, content, "utf8");
+  console.log("gameServer config updated:", configPath);
+}
+
+function updateWeb3ApiEnv(addresses) {
+  const envPath = path.resolve(__dirname, "../../web3-api/.env");
+  if (!fs.existsSync(envPath)) {
+    console.log("web3-api .env not found, skipped:", envPath);
+    return;
+  }
+
+  let content = fs.readFileSync(envPath, "utf8");
+  if (/^BACCARAT_CONTRACT_ADDRESS=.*$/m.test(content)) {
+    content = content.replace(/^BACCARAT_CONTRACT_ADDRESS=.*$/m, `BACCARAT_CONTRACT_ADDRESS=${addresses.baccarat}`);
+  } else {
+    content = `${content.replace(/\s*$/, "")}\nBACCARAT_CONTRACT_ADDRESS=${addresses.baccarat}\n`;
+  }
+
+  fs.writeFileSync(envPath, content, "utf8");
+  console.log("web3-api .env updated:", envPath);
 }
 
 main().catch((error) => {
