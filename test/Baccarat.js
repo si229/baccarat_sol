@@ -84,7 +84,6 @@ describe("Baccarat", function () {
       .to.emit(baccarat, "PlayerWithdrawalLockUpdated")
       .withArgs(player.address, TokenKind.Native, true);
 
-    expect(await baccarat.hasOpenBet(player.address, TokenKind.Native)).to.equal(true);
     expect(await baccarat.isWithdrawalLocked(player.address, TokenKind.Native)).to.equal(true);
 
     await expect(
@@ -153,7 +152,7 @@ describe("Baccarat", function () {
 
     expect(await baccarat.playerBalance(player.address, TokenKind.Native)).to.equal(depositAmount + payout);
     expect(await baccarat.prizePoolBalance(TokenKind.Native)).to.equal(prizeAmount - payout);
-    expect(await baccarat.hasOpenBet(player.address, TokenKind.Native)).to.equal(false);
+    expect(await baccarat.isWithdrawalLocked(player.address, TokenKind.Native)).to.equal(false);
   });
 
   it("settles losses into the prize pool", async function () {

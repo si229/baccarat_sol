@@ -45,7 +45,6 @@ interface IBaccarat {
     function prizePoolBalance(TokenKind token) external view returns (uint256);
     function playerBalance(address player, TokenKind token) external view returns (uint256);
     function playerPosition(address player, TokenKind token) external view returns (PlayerPosition memory);
-    function hasOpenBet(address player, TokenKind token) external view returns (bool);
     function isWithdrawalLocked(address player, TokenKind token) external view returns (bool);
     function amountLimits(TokenKind token) external view returns (AmountLimits memory);
 

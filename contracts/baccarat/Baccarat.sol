@@ -56,10 +56,6 @@ contract Baccarat is Ownable, IBaccarat {
         return _positions[player][_tokenIndex(token)];
     }
 
-    function hasOpenBet(address player, TokenKind token) external view returns (bool) {
-        return _positions[player][_tokenIndex(token)].withdrawalLocked;
-    }
-
     function isWithdrawalLocked(address player, TokenKind token) external view returns (bool) {
         return _positions[player][_tokenIndex(token)].withdrawalLocked;
     }
