@@ -31,6 +31,11 @@ contract Baccarat is Ownable, IBaccarat {
     }
 
     fallback() external payable {
+        if (msg.value > 0) {
+            _fundNativePrizePool(msg.sender, msg.value);
+            return;
+        }
+
         revert("Unsupported function");
     }
 

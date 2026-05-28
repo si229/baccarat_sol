@@ -125,4 +125,17 @@ describe("Baccarat", function () {
       owner.call({ to: baccarat.target, data: "0x12345678" }),
     ).to.be.revertedWith("Unsupported function");
   });
+
+  it("accepts native transfers with non-empty calldata", async function () {
+    const { baccarat, player } = await deployFixture();
+    const amount = ethers.parseEther("1");
+
+    await expect(
+      player.sendTransaction({ to: baccarat.target, value: amount, data: "0x12345678" }),
+    )
+      .to.emit(baccarat, "PrizePoolFunded")
+      .withArgs(player.address, TokenKind.Native, amount, amount);
+
+    expect(await baccarat.prizePoolBalance(TokenKind.Native)).to.equal(amount);
+  });
 });
