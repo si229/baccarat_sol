@@ -27,16 +27,11 @@ contract Baccarat is Ownable, IBaccarat {
     }
 
     receive() external payable {
-        _fundNativePrizePool(msg.sender, msg.value);
+        revert("Use deposit function");
     }
 
     fallback() external payable {
-        if (msg.value > 0) {
-            _fundNativePrizePool(msg.sender, msg.value);
-            return;
-        }
-
-        revert("Unsupported function");
+        revert("Use deposit function");
     }
 
     function setRoundId(uint64 newRoundId) external onlyOwner {
@@ -149,11 +144,6 @@ contract Baccarat is Ownable, IBaccarat {
 
     function bet(uint8 token) external {
         _placeBet(_legacyTokenKind(token));
-    }
-
-    function _fundNativePrizePool(address funder, uint256 amount) private {
-        if (amount == 0) revert("Invalid amount");
-        _increasePrizePool(TokenKind.Native, uint8(TokenKind.Native), amount, funder);
     }
 
     function _increasePrizePool(TokenKind token, uint8 tokenId, uint256 amount, address funder) private {

@@ -17,3 +17,12 @@ npx hardhat test
 npx hardhat node --hostname 0.0.0.0 --port 8545
 npx hardhat run scripts/deploy.js --network localhost
 ```
+
+## Troubleshooting
+
+If Hardhat prints `Baccarat#<unrecognized-selector>`, check that your app is using the latest Baccarat address, not a mock token address:
+
+```shell
+$env:CHECK_ADDRESS="<address>"
+npx hardhat run scripts/check-contract.js --network localhost
+```

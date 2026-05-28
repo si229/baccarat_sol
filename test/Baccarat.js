@@ -118,24 +118,24 @@ describe("Baccarat", function () {
     expect(await baccarat.hasUnsettledBet(player.address, TokenKind.Native)).to.equal(true);
   });
 
-  it("rejects unknown function selectors clearly", async function () {
+  it("rejects unknown selectors", async function () {
     const { baccarat, owner } = await deployFixture();
 
-    await expect(
-      owner.call({ to: baccarat.target, data: "0x12345678" }),
-    ).to.be.revertedWith("Unsupported function");
+    await expect(owner.call({ to: baccarat.target, data: "0x12345678" })).to.be.revertedWith(
+      "Use deposit function",
+    );
   });
 
-  it("accepts native transfers with non-empty calldata", async function () {
+  it("rejects direct native transfers", async function () {
     const { baccarat, player } = await deployFixture();
     const amount = ethers.parseEther("1");
 
     await expect(
       player.sendTransaction({ to: baccarat.target, value: amount, data: "0x12345678" }),
-    )
-      .to.emit(baccarat, "PrizePoolFunded")
-      .withArgs(player.address, TokenKind.Native, amount, amount);
+    ).to.be.revertedWith("Use deposit function");
 
-    expect(await baccarat.prizePoolBalance(TokenKind.Native)).to.equal(amount);
+    await expect(player.sendTransaction({ to: baccarat.target, value: amount })).to.be.revertedWith(
+      "Use deposit function",
+    );
   });
 });
