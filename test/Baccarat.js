@@ -105,4 +105,24 @@ describe("Baccarat", function () {
     expect(await baccarat.playerBalance(player.address, TokenKind.Native)).to.equal(depositAmount - loss);
     expect(await baccarat.prizePoolBalance(TokenKind.Native)).to.equal(loss);
   });
+
+  it("supports legacy uint8 entrypoints", async function () {
+    const { baccarat, player } = await deployFixture();
+    const amount = ethers.parseEther("1");
+
+    await baccarat.connect(player).deposit(TokenKind.Native, amount, { value: amount });
+
+    expect(await baccarat.connect(player).getBalance(TokenKind.Native)).to.equal(amount);
+
+    await baccarat.connect(player).bet(TokenKind.Native);
+    expect(await baccarat.hasUnsettledBet(player.address, TokenKind.Native)).to.equal(true);
+  });
+
+  it("rejects unknown function selectors clearly", async function () {
+    const { baccarat, owner } = await deployFixture();
+
+    await expect(
+      owner.call({ to: baccarat.target, data: "0x12345678" }),
+    ).to.be.revertedWith("Unsupported function");
+  });
 });

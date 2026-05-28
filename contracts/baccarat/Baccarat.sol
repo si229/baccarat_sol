@@ -31,7 +31,7 @@ contract Baccarat is Ownable, IBaccarat {
     }
 
     fallback() external payable {
-        _fundNativePrizePool(msg.sender, msg.value);
+        revert("Unsupported function");
     }
 
     function setRoundId(uint64 newRoundId) external onlyOwner {
@@ -60,33 +60,15 @@ contract Baccarat is Ownable, IBaccarat {
     }
 
     function depositPlayerBalance(TokenKind token, uint256 amount) external payable {
-        uint8 tokenId = _tokenIndex(token);
-        _receiveFunds(tokenId, amount);
-
-        PlayerPosition storage position = _positions[msg.sender][tokenId];
-        position.balance += amount;
-
-        emit PlayerDeposit(msg.sender, token, amount, position.balance);
+        _depositPlayerBalance(token, amount);
     }
 
     function withdrawPlayerBalance(TokenKind token, uint256 amount) external {
-        uint8 tokenId = _tokenIndex(token);
-        if (amount == 0) revert("Invalid amount");
-
-        PlayerPosition storage position = _positions[msg.sender][tokenId];
-        if (position.hasOpenBet) revert("Settle bet first");
-        if (position.balance < amount) revert("Insufficient balance");
-
-        position.balance -= amount;
-        _sendFunds(msg.sender, tokenId, amount);
-
-        emit PlayerWithdrawal(msg.sender, token, amount, position.balance);
+        _withdrawPlayerBalance(token, amount);
     }
 
     function fundPrizePool(TokenKind token, uint256 amount) external payable {
-        uint8 tokenId = _tokenIndex(token);
-        _receiveFunds(tokenId, amount);
-        _increasePrizePool(token, tokenId, amount, msg.sender);
+        _fundPrizePool(token, amount);
     }
 
     function withdrawPrizePool(TokenKind token, uint256 amount) external onlyOwner {
@@ -101,14 +83,7 @@ contract Baccarat is Ownable, IBaccarat {
     }
 
     function placeBet(TokenKind token) external {
-        uint8 tokenId = _tokenIndex(token);
-        PlayerPosition storage position = _positions[msg.sender][tokenId];
-
-        if (position.balance == 0) revert("Insufficient balance");
-        if (position.hasOpenBet) revert("Bet already open");
-
-        position.hasOpenBet = true;
-        emit BetPlaced(msg.sender, token, roundId, position.balance);
+        _placeBet(token);
     }
 
     function settleBet(address player, TokenKind token, int256 payout) external onlyOwner {
@@ -133,6 +108,42 @@ contract Baccarat is Ownable, IBaccarat {
         }
 
         emit BetSettled(player, token, payout, position.balance);
+    }
+
+    function isOwner() external view returns (bool) {
+        return msg.sender == owner();
+    }
+
+    function getToken(uint8 token) external view returns (address) {
+        return _tokens[_legacyTokenIndex(token)].asset;
+    }
+
+    function getPrizePool(uint8 token) external view returns (uint256) {
+        return _prizePools[_legacyTokenIndex(token)];
+    }
+
+    function getBalance(uint8 token) external view returns (uint256) {
+        return _positions[msg.sender][_legacyTokenIndex(token)].balance;
+    }
+
+    function hasUnsettledBet(address player, uint8 token) external view returns (bool) {
+        return _positions[player][_legacyTokenIndex(token)].hasOpenBet;
+    }
+
+    function deposit(uint8 token, uint256 amount) external payable {
+        _depositPlayerBalance(_legacyTokenKind(token), amount);
+    }
+
+    function withdraw(uint8 token, uint256 amount) external {
+        _withdrawPlayerBalance(_legacyTokenKind(token), amount);
+    }
+
+    function depositPrizePool(uint8 token, uint256 amount) external payable {
+        _fundPrizePool(_legacyTokenKind(token), amount);
+    }
+
+    function bet(uint8 token) external {
+        _placeBet(_legacyTokenKind(token));
     }
 
     function _fundNativePrizePool(address funder, uint256 amount) private {
@@ -171,5 +182,55 @@ contract Baccarat is Ownable, IBaccarat {
         uint8 tokenId = uint8(token);
         if (tokenId >= TOKEN_COUNT) revert("Invalid token");
         return tokenId;
+    }
+
+    function _depositPlayerBalance(TokenKind token, uint256 amount) private {
+        uint8 tokenId = _tokenIndex(token);
+        _receiveFunds(tokenId, amount);
+
+        PlayerPosition storage position = _positions[msg.sender][tokenId];
+        position.balance += amount;
+
+        emit PlayerDeposit(msg.sender, token, amount, position.balance);
+    }
+
+    function _withdrawPlayerBalance(TokenKind token, uint256 amount) private {
+        uint8 tokenId = _tokenIndex(token);
+        if (amount == 0) revert("Invalid amount");
+
+        PlayerPosition storage position = _positions[msg.sender][tokenId];
+        if (position.hasOpenBet) revert("Settle bet first");
+        if (position.balance < amount) revert("Insufficient balance");
+
+        position.balance -= amount;
+        _sendFunds(msg.sender, tokenId, amount);
+
+        emit PlayerWithdrawal(msg.sender, token, amount, position.balance);
+    }
+
+    function _fundPrizePool(TokenKind token, uint256 amount) private {
+        uint8 tokenId = _tokenIndex(token);
+        _receiveFunds(tokenId, amount);
+        _increasePrizePool(token, tokenId, amount, msg.sender);
+    }
+
+    function _placeBet(TokenKind token) private {
+        uint8 tokenId = _tokenIndex(token);
+        PlayerPosition storage position = _positions[msg.sender][tokenId];
+
+        if (position.balance == 0) revert("Insufficient balance");
+        if (position.hasOpenBet) revert("Bet already open");
+
+        position.hasOpenBet = true;
+        emit BetPlaced(msg.sender, token, roundId, position.balance);
+    }
+
+    function _legacyTokenKind(uint8 token) private pure returns (TokenKind) {
+        return TokenKind(_legacyTokenIndex(token));
+    }
+
+    function _legacyTokenIndex(uint8 token) private pure returns (uint8) {
+        if (token >= TOKEN_COUNT) revert("Invalid token");
+        return token;
     }
 }

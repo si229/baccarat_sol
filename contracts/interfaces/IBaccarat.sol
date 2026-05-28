@@ -39,4 +39,14 @@ interface IBaccarat {
     function withdrawPrizePool(TokenKind token, uint256 amount) external;
     function placeBet(TokenKind token) external;
     function settleBet(address player, TokenKind token, int256 payout) external;
+
+    function isOwner() external view returns (bool);
+    function getToken(uint8 token) external view returns (address);
+    function getPrizePool(uint8 token) external view returns (uint256);
+    function getBalance(uint8 token) external view returns (uint256);
+    function hasUnsettledBet(address player, uint8 token) external view returns (bool);
+    function deposit(uint8 token, uint256 amount) external payable;
+    function withdraw(uint8 token, uint256 amount) external;
+    function depositPrizePool(uint8 token, uint256 amount) external payable;
+    function bet(uint8 token) external;
 }
