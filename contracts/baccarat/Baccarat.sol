@@ -68,8 +68,8 @@ contract Baccarat is Ownable, IBaccarat {
         _depositPlayerBalance(token, amount);
     }
 
-    function setPlayerWithdrawalLocked(address player, TokenKind token, bool locked) external onlyOwner {
-        _setPlayerWithdrawalLocked(player, token, locked);
+    function setPlayerWithdrawalLocked(address player, TokenKind token) external onlyOwner {
+        _lockPlayerWithdrawal(player, token);
     }
 
     function setAmountLimits(
@@ -162,8 +162,8 @@ contract Baccarat is Ownable, IBaccarat {
         _withdrawPlayerBalance(_legacyTokenKind(token), amount);
     }
 
-    function setWithdrawalLocked(address player, uint8 token, bool locked) external onlyOwner {
-        _setPlayerWithdrawalLocked(player, _legacyTokenKind(token), locked);
+    function setWithdrawalLocked(address player, uint8 token) external onlyOwner {
+        _lockPlayerWithdrawal(player, _legacyTokenKind(token));
     }
 
     function depositPrizePool(uint8 token, uint256 amount) external payable {
@@ -251,15 +251,15 @@ contract Baccarat is Ownable, IBaccarat {
         emit BetPlaced(msg.sender, token, roundId, position.balance);
     }
 
-    function _setPlayerWithdrawalLocked(address player, TokenKind token, bool locked) private {
+    function _lockPlayerWithdrawal(address player, TokenKind token) private {
         if (player == address(0)) revert("Invalid player");
 
         uint8 tokenId = _tokenIndex(token);
         PlayerPosition storage position = _positions[player][tokenId];
 
-        position.withdrawalLocked = locked;
+        position.withdrawalLocked = true;
 
-        emit PlayerWithdrawalLockUpdated(player, token, locked);
+        emit PlayerWithdrawalLockUpdated(player, token, true);
     }
 
     function _validateAmount(uint256 amount, uint256 minAmount, uint256 maxAmount) private pure {

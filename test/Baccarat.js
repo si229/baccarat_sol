@@ -80,7 +80,7 @@ describe("Baccarat", function () {
 
     await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, amount, { value: amount });
 
-    await expect(baccarat.connect(owner).setPlayerWithdrawalLocked(player.address, TokenKind.Native, true))
+    await expect(baccarat.connect(owner).setPlayerWithdrawalLocked(player.address, TokenKind.Native))
       .to.emit(baccarat, "PlayerWithdrawalLockUpdated")
       .withArgs(player.address, TokenKind.Native, true);
 
@@ -90,7 +90,7 @@ describe("Baccarat", function () {
       baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
     ).to.be.revertedWith("Settle bet first");
 
-    await baccarat.connect(owner).setPlayerWithdrawalLocked(player.address, TokenKind.Native, false);
+    await baccarat.connect(owner).settleBet(player.address, TokenKind.Native, 0);
     await expect(() =>
       baccarat.connect(player).withdrawPlayerBalance(TokenKind.Native, amount),
     ).to.changeEtherBalances([player, baccarat], [amount, -amount]);

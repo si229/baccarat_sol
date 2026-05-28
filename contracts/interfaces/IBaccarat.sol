@@ -47,7 +47,7 @@ interface IBaccarat {
     function amountLimits(TokenKind token) external view returns (AmountLimits memory);
 
     function setRoundId(uint64 newRoundId) external;
-    function setPlayerWithdrawalLocked(address player, TokenKind token, bool locked) external;
+    function setPlayerWithdrawalLocked(address player, TokenKind token) external;
     function setAmountLimits(
         TokenKind token,
         uint256 minDeposit,
@@ -65,7 +65,7 @@ interface IBaccarat {
     function getToken(uint8 token) external view returns (address);
     function getPrizePool(uint8 token) external view returns (uint256);
     function getBalance(uint8 token) external view returns (uint256);
-    function setWithdrawalLocked(address player, uint8 token, bool locked) external;
+    function setWithdrawalLocked(address player, uint8 token) external;
     function deposit(uint8 token, uint256 amount) external payable;
     function withdraw(uint8 token, uint256 amount) external;
     function depositPrizePool(uint8 token, uint256 amount) external payable;
