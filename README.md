@@ -13,6 +13,41 @@
 
 Use these steps after cloning the contract project into a new local environment.
 
+### One-command Windows startup
+
+From PowerShell:
+
+```powershell
+cd E:\contract\baccarat_sol
+.\scripts\init-local.ps1 all
+```
+
+Or through npm:
+
+```powershell
+cd E:\contract\baccarat_sol
+npm run init:windows
+```
+
+The script installs contract dependencies, compiles, starts a local Hardhat node in a new PowerShell window, deploys the local contracts, verifies the deployment, starts `web3-api`, and starts `gameServer`.
+
+You can also run one step at a time:
+
+```powershell
+.\scripts\init-local.ps1 setup
+.\scripts\init-local.ps1 node
+.\scripts\init-local.ps1 deploy
+.\scripts\init-local.ps1 doctor
+.\scripts\init-local.ps1 web3
+.\scripts\init-local.ps1 game
+```
+
+### About `npx hardhat --init`
+
+Do not run `npx hardhat --init` in this existing repository. That command is for creating a new Hardhat project in an empty directory and will prompt for a project template. This repository already has its Hardhat config, contracts, scripts, tests, and lock file, so new environments should use `npm ci`.
+
+This project currently stays on Hardhat 2 because Hardhat 3 migration requires Node.js `v22.10.0` or newer and an ESM/plugin migration. Upgrade only after the team standardizes on Node 22+ and can validate the full contract, web3-api, and gameServer flow.
+
 ### 1. Install dependencies and compile
 
 ```powershell
