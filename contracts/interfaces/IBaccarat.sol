@@ -23,13 +23,6 @@ interface IBaccarat {
     event PlayerDeposit(address indexed player, TokenKind indexed token, uint256 amount, uint256 balance);
     event PlayerWithdrawal(address indexed player, TokenKind indexed token, uint256 amount, uint256 balance);
     event PlayerWithdrawalLockUpdated(address indexed player, bool locked);
-    event PlayerWithdrawalLockSnapshot(
-        address indexed player,
-        bool locked,
-        uint256 nativeBalance,
-        uint256 pepeBalance,
-        uint256 usdtBalance
-    );
     event TokenAmountLimitsUpdated(
         TokenKind indexed token,
         uint256 minDeposit,
@@ -44,6 +37,9 @@ interface IBaccarat {
     function tokenAddress(TokenKind token) external view returns (address);
     function prizePoolBalance(TokenKind token) external view returns (uint256);
     function playerBalance(address player, TokenKind token) external view returns (uint256);
+    function playerBalances(
+        address player
+    ) external view returns (uint256 nativeBalance, uint256 pepeBalance, uint256 usdtBalance);
     function isWithdrawalLocked(address player) external view returns (bool);
     function amountLimits(TokenKind token) external view returns (AmountLimits memory);
     function contractVersion() external pure returns (string memory);

@@ -54,6 +54,16 @@ contract Baccarat is Ownable, IBaccarat {
         return _balances[player][_tokenIndex(token)];
     }
 
+    function playerBalances(
+        address player
+    ) external view returns (uint256 nativeBalance, uint256 pepeBalance, uint256 usdtBalance) {
+        return (
+            _balances[player][uint8(TokenKind.Native)],
+            _balances[player][uint8(TokenKind.Pepe)],
+            _balances[player][uint8(TokenKind.Usdt)]
+        );
+    }
+
     function isWithdrawalLocked(address player) external view returns (bool) {
         return _withdrawalLocks[player];
     }
@@ -271,13 +281,6 @@ contract Baccarat is Ownable, IBaccarat {
         _withdrawalLocks[player] = locked;
 
         emit PlayerWithdrawalLockUpdated(player, locked);
-        emit PlayerWithdrawalLockSnapshot(
-            player,
-            locked,
-            _balances[player][uint8(TokenKind.Native)],
-            _balances[player][uint8(TokenKind.Pepe)],
-            _balances[player][uint8(TokenKind.Usdt)]
-        );
     }
 
     function _validateAmount(uint256 amount, uint256 minAmount, uint256 maxAmount) private pure {
