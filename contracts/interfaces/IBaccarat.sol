@@ -31,6 +31,7 @@ interface IBaccarat {
     );
     event BetPlaced(address indexed player, TokenKind indexed token, uint64 indexed roundId, uint256 balance);
     event PlayerBalanceSettled(address indexed player, TokenKind indexed token, int256 delta, uint256 balance);
+    event PlayerBalanceSettlementApplied(bytes32 indexed settlementId, address indexed player);
     event PrizePoolFunded(address indexed funder, TokenKind indexed token, uint256 amount, uint256 balance);
     event PrizePoolWithdrawal(address indexed operator, TokenKind indexed token, uint256 amount, uint256 balance);
 
@@ -40,6 +41,7 @@ interface IBaccarat {
     function playerBalances(
         address player
     ) external view returns (uint256 nativeBalance, uint256 pepeBalance, uint256 usdtBalance);
+    function isBalanceSettlementApplied(bytes32 settlementId) external view returns (bool);
     function isWithdrawalLocked(address player) external view returns (bool);
     function amountLimits(TokenKind token) external view returns (AmountLimits memory);
     function contractVersion() external pure returns (string memory);
@@ -58,8 +60,13 @@ interface IBaccarat {
     function fundPrizePool(TokenKind token, uint256 amount) external payable;
     function withdrawPrizePool(TokenKind token, uint256 amount) external;
     function placeBet(TokenKind token) external;
-    function settlePlayerBalance(address player, TokenKind token, int256 delta) external;
-    function settlePlayerBalances(address player, TokenKind[] calldata tokens, int256[] calldata deltas) external;
+    function settlePlayerBalance(bytes32 settlementId, address player, TokenKind token, int256 delta) external;
+    function settlePlayerBalances(
+        bytes32 settlementId,
+        address player,
+        TokenKind[] calldata tokens,
+        int256[] calldata deltas
+    ) external;
 
     function isOwner() external view returns (bool);
     function getToken(uint8 token) external view returns (address);

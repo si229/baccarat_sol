@@ -7,6 +7,10 @@ const TokenKind = {
   Usdt: 2,
 };
 
+function settlementId(label) {
+  return ethers.id(label);
+}
+
 describe("Baccarat", function () {
   async function deployFixture() {
     const [owner, player] = await ethers.getSigners();
@@ -145,7 +149,10 @@ describe("Baccarat", function () {
     await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, depositAmount, { value: depositAmount });
     await baccarat.connect(player).placeBet(TokenKind.Native);
 
-    await expect(baccarat.connect(owner).settlePlayerBalance(player.address, TokenKind.Native, delta))
+    await expect(baccarat.connect(owner).settlePlayerBalance(settlementId("win-1"), player.address, TokenKind.Native, delta))
+      .to.emit(baccarat, "PlayerBalanceSettlementApplied")
+      .withArgs(settlementId("win-1"), player.address)
+      .and
       .to.emit(baccarat, "PlayerBalanceSettled")
       .withArgs(player.address, TokenKind.Native, delta, depositAmount + delta);
 
@@ -160,7 +167,7 @@ describe("Baccarat", function () {
 
     await baccarat.connect(player).depositPlayerBalance(TokenKind.Native, depositAmount, { value: depositAmount });
     await baccarat.connect(player).placeBet(TokenKind.Native);
-    await baccarat.connect(owner).settlePlayerBalance(player.address, TokenKind.Native, -loss);
+    await baccarat.connect(owner).settlePlayerBalance(settlementId("loss-1"), player.address, TokenKind.Native, -loss);
 
     expect(await baccarat.playerBalance(player.address, TokenKind.Native)).to.equal(depositAmount - loss);
     expect(await baccarat.prizePoolBalance(TokenKind.Native)).to.equal(loss);
@@ -179,16 +186,29 @@ describe("Baccarat", function () {
 
     await expect(
       baccarat.connect(owner).settlePlayerBalances(
+        settlementId("batch-1"),
         player.address,
         [TokenKind.Native, TokenKind.Pepe],
         [win, zero],
       ),
     )
+      .to.emit(baccarat, "PlayerBalanceSettlementApplied")
+      .withArgs(settlementId("batch-1"), player.address)
+      .and
       .to.emit(baccarat, "PlayerBalanceSettled")
       .withArgs(player.address, TokenKind.Native, win, depositAmount + win);
 
     expect(await baccarat.playerBalance(player.address, TokenKind.Native)).to.equal(depositAmount + win);
     expect(await baccarat.playerBalance(player.address, TokenKind.Pepe)).to.equal(0);
+    expect(await baccarat.prizePoolBalance(TokenKind.Native)).to.equal(prizeAmount - win);
+
+    await baccarat.connect(owner).settlePlayerBalances(
+      settlementId("batch-1"),
+      player.address,
+      [TokenKind.Native],
+      [win],
+    );
+    expect(await baccarat.playerBalance(player.address, TokenKind.Native)).to.equal(depositAmount + win);
     expect(await baccarat.prizePoolBalance(TokenKind.Native)).to.equal(prizeAmount - win);
   });
 

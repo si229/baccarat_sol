@@ -19,6 +19,7 @@ contract Baccarat is Ownable, IBaccarat {
     uint256[TOKEN_COUNT] private _prizePools;
     mapping(address => mapping(uint8 => uint256)) private _balances;
     mapping(address => bool) private _withdrawalLocks;
+    mapping(bytes32 => bool) private _balanceSettlementApplied;
 
     constructor(address pepeToken, address usdtToken) {
         if (pepeToken == address(0)) revert("Invalid PEPE token");
@@ -66,6 +67,10 @@ contract Baccarat is Ownable, IBaccarat {
 
     function isWithdrawalLocked(address player) external view returns (bool) {
         return _withdrawalLocks[player];
+    }
+
+    function isBalanceSettlementApplied(bytes32 settlementId) external view returns (bool) {
+        return _balanceSettlementApplied[settlementId];
     }
 
     function amountLimits(TokenKind token) external view returns (AmountLimits memory) {
@@ -129,22 +134,40 @@ contract Baccarat is Ownable, IBaccarat {
         _placeBet(token);
     }
 
-    function settlePlayerBalance(address player, TokenKind token, int256 delta) external onlyOwner {
+    function settlePlayerBalance(bytes32 settlementId, address player, TokenKind token, int256 delta) external onlyOwner {
+        if (_applyBalanceSettlementId(settlementId, player)) {
+            return;
+        }
         _settlePlayerBalance(player, token, delta);
     }
 
     function settlePlayerBalances(
+        bytes32 settlementId,
         address player,
         TokenKind[] calldata tokens,
         int256[] calldata deltas
     ) external onlyOwner {
         if (tokens.length != deltas.length) revert("Settlement length mismatch");
+        if (_applyBalanceSettlementId(settlementId, player)) {
+            return;
+        }
 
         for (uint256 i = 0; i < tokens.length; i++) {
             if (deltas[i] != 0) {
                 _settlePlayerBalance(player, tokens[i], deltas[i]);
             }
         }
+    }
+
+    function _applyBalanceSettlementId(bytes32 settlementId, address player) private returns (bool alreadyApplied) {
+        if (settlementId == bytes32(0)) revert("Invalid settlement id");
+        if (_balanceSettlementApplied[settlementId]) {
+            return true;
+        }
+
+        _balanceSettlementApplied[settlementId] = true;
+        emit PlayerBalanceSettlementApplied(settlementId, player);
+        return false;
     }
 
     function isOwner() external view returns (bool) {
