@@ -271,6 +271,13 @@ contract Baccarat is Ownable, IBaccarat {
         _withdrawalLocks[player] = locked;
 
         emit PlayerWithdrawalLockUpdated(player, locked);
+        emit PlayerWithdrawalLockSnapshot(
+            player,
+            locked,
+            _balances[player][uint8(TokenKind.Native)],
+            _balances[player][uint8(TokenKind.Pepe)],
+            _balances[player][uint8(TokenKind.Usdt)]
+        );
     }
 
     function _validateAmount(uint256 amount, uint256 minAmount, uint256 maxAmount) private pure {

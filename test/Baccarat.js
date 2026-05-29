@@ -83,7 +83,9 @@ describe("Baccarat", function () {
 
     await expect(baccarat.connect(owner).setPlayerWithdrawalLocked(player.address))
       .to.emit(baccarat, "PlayerWithdrawalLockUpdated")
-      .withArgs(player.address, true);
+      .withArgs(player.address, true)
+      .and.to.emit(baccarat, "PlayerWithdrawalLockSnapshot")
+      .withArgs(player.address, true, amount, 0, 0);
 
     expect(await baccarat.isWithdrawalLocked(player.address)).to.equal(true);
 

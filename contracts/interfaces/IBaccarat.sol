@@ -23,6 +23,13 @@ interface IBaccarat {
     event PlayerDeposit(address indexed player, TokenKind indexed token, uint256 amount, uint256 balance);
     event PlayerWithdrawal(address indexed player, TokenKind indexed token, uint256 amount, uint256 balance);
     event PlayerWithdrawalLockUpdated(address indexed player, bool locked);
+    event PlayerWithdrawalLockSnapshot(
+        address indexed player,
+        bool locked,
+        uint256 nativeBalance,
+        uint256 pepeBalance,
+        uint256 usdtBalance
+    );
     event TokenAmountLimitsUpdated(
         TokenKind indexed token,
         uint256 minDeposit,
