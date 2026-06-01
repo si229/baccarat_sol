@@ -52,9 +52,16 @@ This project currently stays on Hardhat 2 because Hardhat 3 migration requires N
 
 ```powershell
 cd E:\contract\baccarat_sol
-npm ci
-npm run compile
+.\scripts\init-env.ps1
 ```
+
+If you need a clean reinstall, run:
+
+```powershell
+.\scripts\init-env.ps1 -Clean
+```
+
+This project pins Hardhat 2 in `package-lock.json`. Run `npm ci` or `.\scripts\init-env.ps1` before using Hardhat so `npx hardhat compile` does not prompt to download the latest Hardhat 3 package.
 
 ### 2. Start the local Hardhat chain
 
@@ -131,7 +138,25 @@ npm run compile
 npm test
 npm run deploy:localhost
 npm run doctor:localhost
+npm run stress:web
 ```
+
+## Baccarat Stress Lab
+
+Run the local web tool for RTP, pressure, and prize-pool simulation:
+
+```powershell
+cd E:\contract\baccarat_sol
+npm run stress:web
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8787/
+```
+
+The page simulates the same classic Baccarat rules used by `gameServer`: 8-deck shoe, reshuffle at 52 cards, Banker 0.95, Player 1, Tie 8, Banker Pair 11, and Player Pair 11. It can estimate total bet throughput, RTP, house edge, prize-pool drawdown, bankruptcy round, and a suggested initial prize-pool amount based on the worst simulated drawdown.
 
 ## Troubleshooting
 

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Baccarat Stress Lab</title>
+  <link rel="stylesheet" href="./stress-test.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="control-panel" aria-label="test controls">
+      <div class="brand">
+        <span class="mark">B</span>
+        <div>
+          <h1>百家乐运营压力实验室</h1>
+          <p>RTP、并发注单、奖池波动与初始奖池估算</p>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" type="button" data-preset="balanced">常规运营</button>
+        <button class="tab" type="button" data-preset="highroller">高额玩家</button>
+        <button class="tab" type="button" data-preset="pairs">对子冲击</button>
+      </div>
+
+      <form id="simForm" class="form-grid">
+        <label>
+          <span>局数</span>
+          <input name="rounds" type="number" min="1" step="1000" value="100000">
+        </label>
+        <label>
+          <span>同时在线玩家</span>
+          <input name="players" type="number" min="1" step="1" value="160">
+        </label>
+        <label>
+          <span>每局下注率</span>
+          <input name="activeRate" type="number" min="0" max="1" step="0.01" value="0.38">
+        </label>
+        <label>
+          <span>平均下注额</span>
+          <input name="averageBet" type="number" min="0.01" step="1" value="100">
+        </label>
+        <label>
+          <span>下注波动</span>
+          <input name="betVolatility" type="number" min="0" max="5" step="0.05" value="0.65">
+        </label>
+        <label>
+          <span>初始奖池</span>
+          <input name="initialPool" type="number" min="0" step="1000" value="120000">
+        </label>
+        <label>
+          <span>大额派奖记录线</span>
+          <input name="largeWinThreshold" type="number" min="0" step="100" value="5000">
+        </label>
+        <label>
+          <span>随机种子</span>
+          <input name="seed" type="text" value="ops-2026">
+        </label>
+      </form>
+
+      <div class="mix-panel">
+        <div class="section-title">
+          <h2>下注分布</h2>
+          <span>百分比会自动归一化</span>
+        </div>
+        <div class="mix-grid">
+          <label><span>庄</span><input name="mix-banker" type="number" min="0" step="1" value="45"></label>
+          <label><span>闲</span><input name="mix-player" type="number" min="0" step="1" value="40"></label>
+          <label><span>和</span><input name="mix-tie" type="number" min="0" step="1" value="5"></label>
+          <label><span>庄对</span><input name="mix-bankerPair" type="number" min="0" step="1" value="5"></label>
+          <label><span>闲对</span><input name="mix-playerPair" type="number" min="0" step="1" value="5"></label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="runBtn" class="primary" type="button">开始测试</button>
+        <button id="exportBtn" class="secondary" type="button" disabled>导出 JSON</button>
+      </div>
+      <div class="progress">
+        <div id="progressBar"></div>
+      </div>
+    </section>
+
+    <section class="result-panel">
+      <div class="hero-metrics">
+        <article>
+          <span>RTP</span>
+          <strong id="rtpValue">--</strong>
+        </article>
+        <article>
+          <span>平台收益</span>
+          <strong id="profitValue">--</strong>
+        </article>
+        <article>
+          <span>建议初始奖池</span>
+          <strong id="poolNeedValue">--</strong>
+        </article>
+        <article>
+          <span>注单吞吐</span>
+          <strong id="throughputValue">--</strong>
+        </article>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="section-title">
+          <h2>奖池曲线</h2>
+          <span id="poolRange">等待测试</span>
+        </div>
+        <canvas id="poolChart" width="1200" height="420"></canvas>
+      </div>
+
+      <div class="tables">
+        <section>
+          <div class="section-title">
+            <h2>玩法 RTP</h2>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>玩法</th><th>注单</th><th>投注额</th><th>派奖</th><th>RTP</th><th>命中率</th></tr>
+              </thead>
+              <tbody id="zoneRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-title">
+            <h2>结果分布</h2>
+          </div>
+          <div id="resultStats" class="stat-list"></div>
+        </section>
+      </div>
+
+      <section class="event-log">
+        <div class="section-title">
+          <h2>风险摘要</h2>
+          <span id="runMeta">尚未运行</span>
+        </div>
+        <div id="riskText" class="risk-text">设置参数后开始测试。</div>
+        <div id="largeWins" class="large-wins"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./baccarat-sim-core.js"></script>
+  <script src="./stress-test.js"></script>
+</body>
+</html>
