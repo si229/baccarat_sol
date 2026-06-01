@@ -10,6 +10,7 @@
     "setup:windows": "powershell -ExecutionPolicy Bypass -File scripts/init-local.ps1 setup",
     "deploy:localhost": "hardhat run scripts/deploy.js --network localhost",
     "doctor:localhost": "hardhat run scripts/doctor.js --network localhost",
+    "simulate:client": "node scripts/simulate-client.js",
     "stress:web": "node scripts/serve-stress.js"
   },
   "devDependencies": {
